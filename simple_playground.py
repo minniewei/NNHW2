@@ -3,6 +3,36 @@ import random as r
 from simple_geometry import *
 import matplotlib.pyplot as plt
 
+class UI():
+    def __init__(self, lines, destination_line) -> None:
+        self.lines = lines
+        self.destination_line = destination_line
+        self._draw_playground()
+
+    def _draw_playground(self):
+        # 在子執行緒中進行繪圖
+        plt.figure(figsize=(8, 8))
+
+        # 繪製每一條線
+        for line in self.lines:
+            x_values = [line.p1.x, line.p2.x]
+            y_values = [line.p1.y, line.p2.y]
+            plt.plot(x_values, y_values, color='blue', linewidth=1)
+
+        # 繪製目的地區域
+        upper_line_x = [self.destination_line.p1.x, self.destination_line.p2.x]
+        upper_line_y = [self.destination_line.p1.y, self.destination_line.p1.y]
+        lower_line_x = [self.destination_line.p1.x, self.destination_line.p2.x]
+        lower_line_y = [self.destination_line.p2.y, self.destination_line.p2.y]
+        plt.plot(upper_line_x, upper_line_y, color='red', linewidth=1)
+        plt.plot(lower_line_x, lower_line_y, color='red', linewidth=1)
+
+        # 不顯示刻度線並保證圖形比例一致
+        plt.axis('off')
+        plt.axis('equal')
+
+        # 在子執行緒中執行 show()，不會阻塞主程式
+        plt.show()
 
 class Car():
     def __init__(self) -> None:
@@ -100,6 +130,10 @@ class Playground():
             Line2D(0, 0, 0, -3),  # middle line
         ]
 
+        # read path lines and draw playground
+        self._readPathLines()
+        self.UI = UI(self.lines, self.destination_line)
+    
         self.car = Car()
         self.reset()
 
@@ -302,7 +336,6 @@ class Playground():
 def run_example():
     # use example, select random actions until gameover
     p = Playground()
-    # figure, ax = plt.subplots()
     
     state = p.reset()
     while not p.done:
