@@ -61,12 +61,12 @@ class MainWindow(QMainWindow):
         self.canvas.draw()
 
     def add_circle(self, x, y, radius):
-        # 使用已經存在的 self.ax 來添加圓形
-        print('add circle')
-        print(x, y, radius)
+        # draw the circle
         circle = plt.Circle((x, y), radius, color='green', fill=False)
-        self.ax.add_artist(circle)  # 添加到 self.ax 中
-        self.canvas.draw()  # 更新畫布顯示
+        # add the circle to the plot
+        self.ax.add_artist(circle) 
+        # update the plot
+        self.canvas.draw()
         
 # 背景線程，負責每秒發送圓圈的數據
 class CircleThread(QThread):
