@@ -1,38 +1,80 @@
 import math as m
 import random as r
+import sys
+import time
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from simple_geometry import *
 import matplotlib.pyplot as plt
+from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QApplication
 
-class UI():
+class PrintThread(QThread):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        print("Hello World")
+
+class MainWindow(QMainWindow):
     def __init__(self, lines, destination_line) -> None:
+        super().__init__()
         self.lines = lines
         self.destination_line = destination_line
+
+        # Set up the central widget
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        # Set up the layout
+        self.layout = QVBoxLayout(self.central_widget)
+
+        # Set up the matplotlib FigureCanvas
+        self.canvas = FigureCanvas(plt.Figure(figsize=(8, 8)))
+        self.layout.addWidget(self.canvas)
+
+        # Draw the playground
         self._draw_playground()
+        
 
     def _draw_playground(self):
-        # 在子執行緒中進行繪圖
-        plt.figure(figsize=(8, 8))
+        ax = self.canvas.figure.add_subplot(111)  # 使用 FigureCanvas 的 Figure 新增子圖
 
-        # 繪製每一條線
+        # draw the walls
         for line in self.lines:
             x_values = [line.p1.x, line.p2.x]
             y_values = [line.p1.y, line.p2.y]
-            plt.plot(x_values, y_values, color='blue', linewidth=1)
+            ax.plot(x_values, y_values, color='blue', linewidth=1)
 
-        # 繪製目的地區域
+        # draw the destination line
         upper_line_x = [self.destination_line.p1.x, self.destination_line.p2.x]
         upper_line_y = [self.destination_line.p1.y, self.destination_line.p1.y]
         lower_line_x = [self.destination_line.p1.x, self.destination_line.p2.x]
         lower_line_y = [self.destination_line.p2.y, self.destination_line.p2.y]
-        plt.plot(upper_line_x, upper_line_y, color='red', linewidth=1)
-        plt.plot(lower_line_x, lower_line_y, color='red', linewidth=1)
+        ax.plot(upper_line_x, upper_line_y, color='red', linewidth=1)
+        ax.plot(lower_line_x, lower_line_y, color='red', linewidth=1)
 
-        # 不顯示刻度線並保證圖形比例一致
-        plt.axis('off')
-        plt.axis('equal')
+        # Hide the ticks and ensure the aspect ratio is equal
+        ax.axis('off')
+        ax.axis('equal')
 
-        # 在子執行緒中執行 show()，不會阻塞主程式
-        plt.show()
+    def add_circle(self, x, y, radius):
+        print(x, y, radius)
+        
+# 背景線程，負責每秒發送圓圈的數據
+class CircleThread(QThread):
+    update_circle = pyqtSignal(float, float, float)  # 信號，發送圓圈的位置與半徑
+
+    def run(self):
+        while True:
+            # 每秒生成一個隨機的圓圈參數 (x, y, 半徑)
+            x = 0
+            y = 0
+            x = x+1
+            y = y+1
+            radius = 3
+            print('emit')
+            self.update_circle.emit(x, y, radius)  # 發射信號，通知主線程更新畫布
+            time.sleep(1)  # 每秒執行一次
 
 class Car():
     def __init__(self) -> None:
@@ -132,7 +174,6 @@ class Playground():
 
         # read path lines and draw playground
         self._readPathLines()
-        self.UI = UI(self.lines, self.destination_line)
     
         self.car = Car()
         self.reset()
@@ -334,18 +375,34 @@ class Playground():
 
 
 def run_example():
-    # use example, select random actions until gameover
+    # create a QApplication
+    app = QApplication(sys.argv)
+
+    # create a playground
     p = Playground()
-    
-    state = p.reset()
-    while not p.done:
-        # print every state and position of the car
-        print(state, p.car.getPosition('center'))
-        # select action randomly
-        # you can predict your action according to the state here
-        action = p.predictAction(state)
-        # take action
-        state = p.step(action)
+    lines = p.lines
+    destination_line = p.destination_line
+
+    # create a main window 
+    window = MainWindow(lines, destination_line)
+    window.show()
+
+    # start the main loop
+    sys.exit(app.exec_())
+
+    # crate a thread to draw the circle
+    # circle_thread = CircleThread()
+    # circle_thread.update_circle.connect(window.add_circle)  # 連接信號到槽函數
+    # circle_thread.start()
+    # state = p.reset()
+    # while not p.done:
+    #     # print every state and position of the car
+    #     print(state, p.car.getPosition('center'))
+    #     # select action randomly
+    #     # you can predict your action according to the state here
+    #     action = p.predictAction(state)
+    #     # take action
+    #     state = p.step(action)
         
 if __name__ == "__main__":
     run_example()
