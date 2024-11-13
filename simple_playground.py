@@ -37,42 +37,51 @@ class MainWindow(QMainWindow):
         
 
     def _draw_playground(self):
-        ax = self.canvas.figure.add_subplot(111)  # 使用 FigureCanvas 的 Figure 新增子圖
+        self.ax = self.canvas.figure.add_subplot(111)  # 使用 FigureCanvas 的 Figure 新增子圖
 
         # draw the walls
         for line in self.lines:
             x_values = [line.p1.x, line.p2.x]
             y_values = [line.p1.y, line.p2.y]
-            ax.plot(x_values, y_values, color='blue', linewidth=1)
+            self.ax.plot(x_values, y_values, color='blue', linewidth=1)
 
         # draw the destination line
         upper_line_x = [self.destination_line.p1.x, self.destination_line.p2.x]
         upper_line_y = [self.destination_line.p1.y, self.destination_line.p1.y]
         lower_line_x = [self.destination_line.p1.x, self.destination_line.p2.x]
         lower_line_y = [self.destination_line.p2.y, self.destination_line.p2.y]
-        ax.plot(upper_line_x, upper_line_y, color='red', linewidth=1)
-        ax.plot(lower_line_x, lower_line_y, color='red', linewidth=1)
+        self.ax.plot(upper_line_x, upper_line_y, color='red', linewidth=1)
+        self.ax.plot(lower_line_x, lower_line_y, color='red', linewidth=1)
 
         # Hide the ticks and ensure the aspect ratio is equal
-        ax.axis('off')
-        ax.axis('equal')
+        self.ax.axis('off')
+        self.ax.axis('equal')
+
+        # Draw the canvas again to update the plot
+        self.canvas.draw()
 
     def add_circle(self, x, y, radius):
+        # 使用已經存在的 self.ax 來添加圓形
+        print('add circle')
         print(x, y, radius)
+        circle = plt.Circle((x, y), radius, color='green', fill=False)
+        self.ax.add_artist(circle)  # 添加到 self.ax 中
+        self.canvas.draw()  # 更新畫布顯示
         
 # 背景線程，負責每秒發送圓圈的數據
 class CircleThread(QThread):
     update_circle = pyqtSignal(float, float, float)  # 信號，發送圓圈的位置與半徑
 
     def run(self):
+        x = 0
+        y = 0
         while True:
             # 每秒生成一個隨機的圓圈參數 (x, y, 半徑)
-            x = 0
-            y = 0
             x = x+1
             y = y+1
             radius = 3
             print('emit')
+            print(x, y, radius)
             self.update_circle.emit(x, y, radius)  # 發射信號，通知主線程更新畫布
             time.sleep(1)  # 每秒執行一次
 
@@ -386,14 +395,15 @@ def run_example():
     # create a main window 
     window = MainWindow(lines, destination_line)
     window.show()
+    
+    # crate a thread to draw the circle
+    circle_thread = CircleThread()
+    circle_thread.update_circle.connect(window.add_circle)  # 連接信號到槽函數
+    circle_thread.start()
 
     # start the main loop
     sys.exit(app.exec_())
 
-    # crate a thread to draw the circle
-    # circle_thread = CircleThread()
-    # circle_thread.update_circle.connect(window.add_circle)  # 連接信號到槽函數
-    # circle_thread.start()
     # state = p.reset()
     # while not p.done:
     #     # print every state and position of the car
